@@ -13,9 +13,10 @@
 # limitations under the License.
 
 import ctypes
-import pytest
 
 import cirq
+import pytest
+
 import qsimcirq
 
 
