@@ -38,6 +38,45 @@ inline void ClearFlushToZeroAndDenormalsAreZeros() {
 #endif
 }
 
+// RAII guard for the flush-to-zero and denormals-are-zeros MXCSR control flags.
+// Flags reset to previous state as soon as the guard goes out of scope
+// or if exception occurs.
+class ScopedFlushToZeroAndDenormalsAreZeros {
+public:
+  explicit ScopedFlushToZeroAndDenormalsAreZeros(bool denormals_are_zeros = true) {
+    #ifdef __SSE2__
+      if (denormals_are_zeros) {
+        original_flags_ = _mm_getcsr();
+        SetFlushToZeroAndDenormalsAreZeros();
+        active_ = true;
+      }
+    #endif
+  }
+
+  ~ScopedFlushToZeroAndDenormalsAreZeros() {
+    #ifdef __SSE2__
+      if (active_) {
+        _mm_setcsr(original_flags_);
+      }
+    #endif
+  }
+
+  // prevent copying and moving
+  ScopedFlushToZeroAndDenormalsAreZeros(
+    const ScopedFlushToZeroAndDenormalsAreZeros&) = delete;
+  ScopedFlushToZeroAndDenormalsAreZeros& operator=(
+    const ScopedFlushToZeroAndDenormalsAreZeros&) = delete;
+  ScopedFlushToZeroAndDenormalsAreZeros(
+    ScopedFlushToZeroAndDenormalsAreZeros&&) = delete;
+  ScopedFlushToZeroAndDenormalsAreZeros& operator=(
+    ScopedFlushToZeroAndDenormalsAreZeros&&) = delete;
+
+private:
+  unsigned original_flags_ = 0;
+  // avoids resetting the flags if they were not changed in the constructor
+  bool active_ = false;
+};
+
 }  // namespace qsim
 
 #endif  // UTIL_CPU_H_
