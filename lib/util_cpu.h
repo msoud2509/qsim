@@ -16,7 +16,7 @@
 #define UTIL_CPU_H_
 
 #ifdef __SSE2__
-# include <immintrin.h>
+#include <immintrin.h>
 #endif
 
 namespace qsim {
@@ -43,13 +43,18 @@ inline void ClearFlushToZeroAndDenormalsAreZeros() {
 // or if exception occurs.
 class ScopedFlushToZeroAndDenormalsAreZeros {
 public:
-  explicit ScopedFlushToZeroAndDenormalsAreZeros(bool denormals_are_zeros = true) {
+  explicit ScopedFlushToZeroAndDenormalsAreZeros(
+      bool denormals_are_zeros = true) {
     #ifdef __SSE2__
+      original_flags_ = _mm_getcsr();
       if (denormals_are_zeros) {
-        original_flags_ = _mm_getcsr();
         SetFlushToZeroAndDenormalsAreZeros();
-        active_ = true;
+      } else {
+        ClearFlushToZeroAndDenormalsAreZeros();
       }
+      active_ = true;
+    #else
+      (void)denormals_are_zeros;
     #endif
   }
 
@@ -72,9 +77,11 @@ public:
     ScopedFlushToZeroAndDenormalsAreZeros&&) = delete;
 
 private:
+#ifdef __SSE2__
   unsigned original_flags_ = 0;
   // avoids resetting the flags if they were not changed in the constructor
   bool active_ = false;
+#endif
 };
 
 }  // namespace qsim

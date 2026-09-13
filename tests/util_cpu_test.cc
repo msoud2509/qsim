@@ -29,15 +29,24 @@ namespace {
 
 constexpr unsigned kFlushToZeroAndDenormalsAreZeros = 0x8040;
 
-TEST(ScopedFlushToZeroAndDenormalsAreZerosTest, DisabledLeavesFlagsUnchanged) {
+TEST(ScopedFlushToZeroAndDenormalsAreZerosTest, EnforcesAndRestoresFlags) {
   const unsigned original_flags = _mm_getcsr();
 
+  _mm_setcsr(original_flags & ~kFlushToZeroAndDenormalsAreZeros);
+  {
+    ScopedFlushToZeroAndDenormalsAreZeros guard(true);
+    EXPECT_EQ(_mm_getcsr(), original_flags | kFlushToZeroAndDenormalsAreZeros);
+  }
+  EXPECT_EQ(_mm_getcsr(), original_flags & ~kFlushToZeroAndDenormalsAreZeros);
+
+  _mm_setcsr(original_flags | kFlushToZeroAndDenormalsAreZeros);
   {
     ScopedFlushToZeroAndDenormalsAreZeros guard(false);
-    EXPECT_EQ(_mm_getcsr(), original_flags);
+    EXPECT_EQ(_mm_getcsr(), original_flags & ~kFlushToZeroAndDenormalsAreZeros);
   }
+  EXPECT_EQ(_mm_getcsr(), original_flags | kFlushToZeroAndDenormalsAreZeros);
 
-  EXPECT_EQ(_mm_getcsr(), original_flags);
+  _mm_setcsr(original_flags);
 }
 
 TEST(ScopedFlushToZeroAndDenormalsAreZerosTest, RestoresNestedGuards) {
